@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.population.BasicPlan;
 import org.matsim.api.core.v01.population.HasPlansAndId;
+import org.matsim.api.core.v01.population.Plan;
 import org.matsim.core.api.internal.MatsimManager;
 import org.matsim.core.gbl.MatsimRandom;
 import org.matsim.core.replanning.selectors.PlanSelector;
@@ -273,7 +274,21 @@ public class GenericStrategyManager<PL extends BasicPlan, AG extends HasPlansAnd
 		@Override
 		public GenericPlanStrategy<PL, AG> chooseStrategy(HasPlansAndId<PL, AG> person, String subpopulation) {
 			StrategyWeights<PL, AG> weights = GenericStrategyManager.this.getStrategyWeights(subpopulation);
-			
+			//If the agent has all the bad plans, replan it.
+//			double maxScore = -99999;
+//			for(PL plan: person.getPlans()) {
+//				Plan p = (Plan) plan;
+//				if(p.getScore() > maxScore) {
+//					maxScore = p.getScore();
+//				}
+//			}
+//			if(person.getPlans().size() > 4 && maxScore < -500) {
+//				for(GenericPlanStrategy<PL, AG> ps: weights.strategies) {
+//					if(ps.toString().contains("ReRoute") && MatsimRandom.getRandom().nextDouble() < (-maxScore-500)/20000) {
+//						return ps;
+//					}
+//				}
+//			}
 			double rnd = MatsimRandom.getRandom().nextDouble() * weights.totalWeights;
 			
 			double sum = 0.0;

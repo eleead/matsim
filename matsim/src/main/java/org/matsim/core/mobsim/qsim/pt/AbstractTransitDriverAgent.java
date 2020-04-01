@@ -44,6 +44,7 @@ import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.matsim.vehicles.Vehicle;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -59,6 +60,7 @@ public abstract class AbstractTransitDriverAgent implements TransitDriverAgent, 
 	private Person dummyPerson;
 	private TransitRouteStop currentStop = null;
 	protected TransitRouteStop nextStop;
+	private List<PTPassengerAgent> passengersEntering;
 	private ListIterator<TransitRouteStop> stopIterator;
 	private final InternalInterface internalInterface;
 
@@ -167,7 +169,8 @@ public abstract class AbstractTransitDriverAgent implements TransitDriverAgent, 
 		 * If there are passengers leaving or entering, the stop time must be not greater than 1.0 in order to let them (de-)board every second. 
 		 * If a stopTime greater than 1.0 is used, this method is not necessarily triggered by the qsim, so (de-)boarding will not happen. Dg, 10-2012
 		 */
-		double stopTime = this.accessEgress.calculateStopTimeAndTriggerBoarding(getTransitRoute(), getTransitLine(), this.vehicle, stop, stopsToCome, now);
+		double stopTime = this.accessEgress.calculateStopTimeAndTriggerBoarding(getTransitRoute(), getTransitLine(), this.vehicle, 
+				stop, stopsToCome, now, this.passengersEntering);
 
 		if(stopTime == 0.0){
 			stopTime = longerStopTimeIfWeAreAheadOfSchedule(now, stopTime);
@@ -237,6 +240,14 @@ public abstract class AbstractTransitDriverAgent implements TransitDriverAgent, 
 			}
 			eventsManager.processEvent(new VehicleArrivesAtFacilityEvent(now, this.vehicle.getVehicle().getId(), stop.getId(),
 					delay));
+			
+			//TODO: Check this part of code that is written by me
+			TransitRoute route = this.getTransitRoute();
+			List<TransitRouteStop> stopsToCome = route.getStops().subList(stopIterator.nextIndex(), route.getStops().size());
+			ArrayList<PTPassengerAgent> passengersLeaving = this.accessEgress.findPassengersLeaving(this.vehicle, stop);
+			int freeCapacity = vehicle.getPassengerCapacity() -  vehicle.getPassengers().size() + passengersLeaving.size();
+			this.passengersEntering = this.accessEgress.findPassengersEntering(getTransitRoute(), getTransitLine(), this.vehicle, stop, stopsToCome, freeCapacity, now);
+
 		}
 	}
 
@@ -283,6 +294,7 @@ public abstract class AbstractTransitDriverAgent implements TransitDriverAgent, 
 			assertVehicleIsEmpty();
 		}
 		this.currentStop = null;
+		this.passengersEntering = null;
 	}
 
 	private void assertAllStopsServed() {

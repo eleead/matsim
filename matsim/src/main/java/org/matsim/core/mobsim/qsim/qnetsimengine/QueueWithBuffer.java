@@ -834,6 +834,7 @@ final class QueueWithBuffer implements QLaneI, SignalizeableItem {
 	 */
 	@Override
 	public final void addTransitSlightlyUpstreamOfStop( final QVehicle veh) {
+		usedStorageCapacity += veh.getSizeInEquivalents();
 		this.vehQueue.addFirst(veh) ;
 	}
 	

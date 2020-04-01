@@ -370,6 +370,9 @@ public final class QLinkLanesImpl extends AbstractQLink {
 
 	private QLaneI chooseNextLane(QLaneI queue, Id<Link> toLinkId) {
 		List<QLaneI> toQueues = this.nextQueueToLinkCache.get(queue.getId()).get(toLinkId);
+		if(toQueues == null) {
+			throw new IllegalArgumentException("The next lanes to "+toLinkId.toString()+"are not found!");
+		}
 		QLaneI retLane = toQueues.get(0);
 		if (toQueues.size() == 1) {
 			return retLane;

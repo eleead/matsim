@@ -76,13 +76,15 @@ class PassengerAccessEgressImpl implements PassengerAccessEgress {
 	 * @return should be 0.0 or 1.0, values greater than 1.0 may lead to buggy behavior, dependent on TransitStopHandler used
 	 */
 	/*package*/ double calculateStopTimeAndTriggerBoarding(TransitRoute transitRoute, TransitLine transitLine, final TransitVehicle vehicle, 
-			final TransitStopFacility stop, List<TransitRouteStop> stopsToCome, final double now) {
+			final TransitStopFacility stop, List<TransitRouteStop> stopsToCome, final double now, List<PTPassengerAgent> passengersEntering) {
 		ArrayList<PTPassengerAgent> passengersLeaving = findPassengersLeaving(vehicle, stop);
-		int freeCapacity = vehicle.getPassengerCapacity() -  vehicle.getPassengers().size() + passengersLeaving.size();
-		List<PTPassengerAgent> passengersEntering = findPassengersEntering(transitRoute, transitLine, vehicle, stop, stopsToCome, freeCapacity, now);
 		
 		TransitStopHandler stopHandler = vehicle.getStopHandler();
-		double stopTime = stopHandler.handleTransitStop(stop, now, passengersLeaving, passengersEntering, this, vehicle);
+		List<PTPassengerAgent> currPassengersEntering = findPassengersEntering(transitRoute, transitLine, vehicle,
+				stop, stopsToCome, 10000, now); //Search for the agents that are still there.
+		
+		currPassengersEntering.retainAll(passengersEntering);
+		double stopTime = stopHandler.handleTransitStop(stop, now, passengersLeaving, currPassengersEntering, this, vehicle);
 		if (stopTime == 0.0){ // (de-)boarding is complete when the additional stopTime is 0.0
 			if (this.isGeneratingDeniedBoardingEvents){
 				this.fireBoardingDeniedEvents(vehicle, now);
@@ -103,7 +105,7 @@ class PassengerAccessEgressImpl implements PassengerAccessEgress {
 	}
 	
 	
-	private List<PTPassengerAgent> findPassengersEntering(TransitRoute transitRoute, TransitLine transitLine, TransitVehicle vehicle, 
+	protected List<PTPassengerAgent> findPassengersEntering(TransitRoute transitRoute, TransitLine transitLine, TransitVehicle vehicle, 
 			final TransitStopFacility stop, List<TransitRouteStop> stopsToCome, int freeCapacity, double now) {
 		ArrayList<PTPassengerAgent> passengersEntering = new ArrayList<>();
 		
@@ -139,7 +141,7 @@ class PassengerAccessEgressImpl implements PassengerAccessEgress {
 	
 	
 	
-	private ArrayList<PTPassengerAgent> findPassengersLeaving(TransitVehicle vehicle,
+	protected ArrayList<PTPassengerAgent> findPassengersLeaving(TransitVehicle vehicle,
 			final TransitStopFacility stop) {
 		ArrayList<PTPassengerAgent> passengersLeaving = new ArrayList<>();
 		for (PassengerAgent passenger : vehicle.getPassengers()) {
