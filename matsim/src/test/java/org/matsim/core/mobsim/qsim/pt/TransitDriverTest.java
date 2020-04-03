@@ -372,11 +372,11 @@ public class TransitDriverTest {
 		TransitQSimEngine trEngine = new TransitQSimEngine(tqsim) ;
 		tqsim.addMobsimEngine(trEngine);
 		
-		VehicleType vehType = new VehicleTypeImpl(Id.create("busType", VehicleType.class));
-		VehicleCapacity capacity = new VehicleCapacityImpl();
+		VehiclesFactory vf = VehicleUtils.getFactory();
+		VehicleType vehType = vf.createVehicleType(Id.create("busType", VehicleType.class));
+		VehicleCapacity capacity = vehType.getCapacity();
 		capacity.setSeats(Integer.valueOf(4));
-		vehType.setCapacity(capacity);
-		Vehicle vehicle = new VehicleImpl(Id.create(1976, Vehicle.class), vehType);
+		Vehicle vehicle = vf.createVehicle(Id.create(1976, Vehicle.class), vehType);
 
 		AbstractTransitDriverAgent driver = new TransitDriverAgentImpl(new SingletonUmlaufBuilderImpl(Collections.singleton(tLine)).build().get(0), TransportMode.car, tracker, trEngine.getInternalInterface());
 		TransitQVehicle queueVehicle = new TransitQVehicle(vehicle);
@@ -567,14 +567,14 @@ public class TransitDriverTest {
 		TransitStopFacility stop3 = builder.createTransitStopFacility(Id.create("3", TransitStopFacility.class), new Coord((double) 500, (double) 0), false);
 		double departureOffset1 = 60;
 		double departureOffset2 = 160;
-		double departureOffset3 = Time.UNDEFINED_TIME;
+		double departureOffset3 = Time.getUndefinedTime();
 		TransitRouteStop routeStop1 = builder.createTransitRouteStop(stop1, departureOffset1 - 10.0, departureOffset1);
 		routeStop1.setAwaitDepartureTime(true);
 		stops.add(routeStop1);
 		TransitRouteStop routeStop2 = builder.createTransitRouteStop(stop2, departureOffset2 - 10.0, departureOffset2);
 		routeStop2.setAwaitDepartureTime(false);
 		stops.add(routeStop2);
-		TransitRouteStop routeStop3 = builder.createTransitRouteStop(stop3, Time.UNDEFINED_TIME, departureOffset3);
+		TransitRouteStop routeStop3 = builder.createTransitRouteStop(stop3, Time.getUndefinedTime(), departureOffset3);
 		routeStop3.setAwaitDepartureTime(true);
 		stops.add(routeStop3);
 		NetworkRoute route = RouteUtils.createLinkNetworkRouteImpl(null, null);
