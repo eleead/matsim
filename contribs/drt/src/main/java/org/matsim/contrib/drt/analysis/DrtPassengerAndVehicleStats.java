@@ -22,6 +22,14 @@
  */
 package org.matsim.contrib.drt.analysis;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
@@ -43,19 +51,14 @@ import org.matsim.contrib.dvrp.fleet.FleetSpecification;
 import org.matsim.contrib.dvrp.optimizer.Request;
 import org.matsim.contrib.dvrp.passenger.PassengerRequestRejectedEvent;
 import org.matsim.contrib.dvrp.passenger.PassengerRequestRejectedEventHandler;
-import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.vehicles.Vehicle;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author jbischoff
  */
 public class DrtPassengerAndVehicleStats
 		implements PersonEntersVehicleEventHandler, PersonDepartureEventHandler, PersonArrivalEventHandler,
-		LinkEnterEventHandler, DrtRequestSubmittedEventHandler,
-		PassengerRequestRejectedEventHandler {
+		LinkEnterEventHandler, DrtRequestSubmittedEventHandler, PassengerRequestRejectedEventHandler {
 
 	private final Map<Id<Person>, Double> departureTimes = new HashMap<>();
 	private final Map<Id<Person>, Id<Link>> departureLinks = new HashMap<>();
@@ -69,16 +72,13 @@ public class DrtPassengerAndVehicleStats
 	private final Map<Id<Request>, Id<Person>> request2person = new HashMap<>();
 	private final String mode;
 	private final Network network;
-	private Set<Id<Vehicle>> monitoredVehicles;
 	private final FleetSpecification fleetSpecification;
 
-	public DrtPassengerAndVehicleStats(Network network, EventsManager events, DrtConfigGroup drtCfg,
-									   FleetSpecification fleetSpecification) {
+	public DrtPassengerAndVehicleStats(Network network, DrtConfigGroup drtCfg, FleetSpecification fleetSpecification) {
 		this.mode = drtCfg.getMode();
 		this.network = network;
-		events.addHandler(this);
 		this.fleetSpecification = fleetSpecification;
-		
+
 		initializeVehicles();
 	}
 
@@ -97,15 +97,14 @@ public class DrtPassengerAndVehicleStats
 		initializeVehicles();
 	}
 
-
 	private void initializeVehicles() {
 		int maxcap = DrtTripsAnalyser.findMaxVehicleCapacity(fleetSpecification);
-		this.monitoredVehicles = fleetSpecification.getVehicleSpecifications()
+		Set<Id<Vehicle>> monitoredVehicles = fleetSpecification.getVehicleSpecifications()
 				.keySet()
 				.stream()
-				.map(vid -> Id.createVehicleId(vid))
+				.map(Id::createVehicleId)
 				.collect(Collectors.toSet());
-		
+
 		for (Id<Vehicle> vid : monitoredVehicles) {
 			this.inVehicleDistance.put(vid, new HashMap<>());
 			this.vehicleDistances.put(vid, new double[3 + maxcap]);

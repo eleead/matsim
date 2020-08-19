@@ -38,14 +38,13 @@ import org.matsim.api.core.v01.events.handler.ActivityStartEventHandler;
 import org.matsim.api.core.v01.events.handler.PersonLeavesVehicleEventHandler;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
-import org.matsim.contrib.ev.MobsimScopeEventHandler;
-import org.matsim.contrib.ev.MobsimScopeEventHandling;
 import org.matsim.contrib.ev.fleet.ElectricFleet;
 import org.matsim.contrib.ev.fleet.ElectricVehicle;
 import org.matsim.contrib.ev.infrastructure.Charger;
 import org.matsim.contrib.ev.infrastructure.ChargingInfrastructure;
 import org.matsim.contrib.ev.infrastructure.ChargingInfrastructures;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
+import org.matsim.core.events.MobsimScopeEventHandler;
 import org.matsim.vehicles.Vehicle;
 
 import com.google.common.collect.ImmutableListMultimap;
@@ -56,20 +55,18 @@ public class VehicleChargingHandler
 
 	public static final String CHARGING_IDENTIFIER = " charging";
 	public static final String CHARGING_INTERACTION = PlanCalcScoreConfigGroup.createStageActivityType(CHARGING_IDENTIFIER);
-	private Map<Id<Person>, Id<Vehicle>> lastVehicleUsed = new HashMap<>();
-	private Map<Id<ElectricVehicle>, Id<Charger>> vehiclesAtChargers = new HashMap<>();
+	private final Map<Id<Person>, Id<Vehicle>> lastVehicleUsed = new HashMap<>();
+	private final Map<Id<ElectricVehicle>, Id<Charger>> vehiclesAtChargers = new HashMap<>();
 
 	private final ChargingInfrastructure chargingInfrastructure;
 	private final ElectricFleet electricFleet;
 	private final ImmutableListMultimap<Id<Link>, Charger> chargersAtLinks;
 
 	@Inject
-	public VehicleChargingHandler(ChargingInfrastructure chargingInfrastructure, ElectricFleet electricFleet,
-			MobsimScopeEventHandling events) {
+	public VehicleChargingHandler(ChargingInfrastructure chargingInfrastructure, ElectricFleet electricFleet) {
 		this.chargingInfrastructure = chargingInfrastructure;
 		this.electricFleet = electricFleet;
 		chargersAtLinks = ChargingInfrastructures.getChargersAtLinks(chargingInfrastructure);
-		events.addMobsimScopeHandler(this);
 	}
 
 	/**
