@@ -28,16 +28,27 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Population;
+import org.matsim.contrib.drt.analysis.DrtRequestAnalyzer;
+import org.matsim.contrib.drt.analysis.zonal.DrtModeZonalSystemModule;
+import org.matsim.contrib.drt.fare.DrtFareHandler;
+import org.matsim.contrib.drt.optimizer.rebalancing.Feedforward.DrtModeFeedforwardRebalanceModule;
+import org.matsim.contrib.drt.optimizer.rebalancing.Feedforward.FeedforwardRebalancingStrategyParams;
 import org.matsim.contrib.drt.optimizer.rebalancing.NoRebalancingStrategy;
+import org.matsim.contrib.drt.optimizer.rebalancing.RebalancingParams;
 import org.matsim.contrib.drt.optimizer.rebalancing.RebalancingStrategy;
 import org.matsim.contrib.drt.optimizer.rebalancing.mincostflow.DrtModeMinCostFlowRebalancingModule;
+import org.matsim.contrib.drt.optimizer.rebalancing.mincostflow.MinCostFlowRebalancingStrategyParams;
+import org.matsim.contrib.drt.optimizer.rebalancing.plusOne.DrtModePlusOneRebalanceModule;
+import org.matsim.contrib.drt.optimizer.rebalancing.plusOne.PlusOneRebalancingStrategyParams;
 import org.matsim.contrib.drt.routing.DefaultDrtRouteUpdater;
 import org.matsim.contrib.drt.routing.DrtRouteCreator;
 import org.matsim.contrib.drt.routing.DrtRouteUpdater;
 import org.matsim.contrib.drt.routing.DrtStopFacility;
 import org.matsim.contrib.drt.routing.DrtStopFacilityImpl;
 import org.matsim.contrib.drt.routing.DrtStopNetwork;
+import org.matsim.contrib.drt.speedup.DrtSpeedUp;
 import org.matsim.contrib.dvrp.fleet.FleetModule;
+import org.matsim.contrib.dvrp.fleet.FleetSpecification;
 import org.matsim.contrib.dvrp.router.ClosestAccessEgressFacilityFinder;
 import org.matsim.contrib.dvrp.router.DecideOnLinkAccessEgressFacilityFinder;
 import org.matsim.contrib.dvrp.router.DefaultMainLegRouter;
@@ -87,8 +98,20 @@ public final class DrtModeModule extends AbstractDvrpModeModule {
 		install(new FleetModule(getMode(), drtCfg.getVehiclesFileUrl(getConfig().getContext()),
 				drtCfg.isChangeStartLinkToLastLinkInSchedule()));
 
-		if (drtCfg.getMinCostFlowRebalancing().isPresent()) {
-			install(new DrtModeMinCostFlowRebalancingModule(drtCfg));
+		if (drtCfg.getRebalancingParams().isPresent()) {
+			RebalancingParams rebalancingParams = drtCfg.getRebalancingParams().get();
+			install(new DrtModeZonalSystemModule(drtCfg));
+
+			if (rebalancingParams.getRebalancingStrategyParams() instanceof MinCostFlowRebalancingStrategyParams) {
+				install(new DrtModeMinCostFlowRebalancingModule(drtCfg));
+			} else if (rebalancingParams.getRebalancingStrategyParams() instanceof PlusOneRebalancingStrategyParams) {
+				install(new DrtModePlusOneRebalanceModule(drtCfg));
+			} else if (rebalancingParams.getRebalancingStrategyParams() instanceof FeedforwardRebalancingStrategyParams) {
+				install(new DrtModeFeedforwardRebalanceModule(drtCfg));
+			} else {
+				throw new RuntimeException(
+						"Unsupported rebalancingStrategyParams: " + rebalancingParams.getRebalancingStrategyParams());
+			}
 		} else {
 			bindModal(RebalancingStrategy.class).to(NoRebalancingStrategy.class).asEagerSingleton();
 		}
@@ -135,6 +158,17 @@ public final class DrtModeModule extends AbstractDvrpModeModule {
 		}).asEagerSingleton();
 
 		addControlerListenerBinding().to(modalKey(DrtRouteUpdater.class));
+
+		drtCfg.getDrtFareParams()
+				.ifPresent(params -> addEventHandlerBinding().toInstance(new DrtFareHandler(getMode(), params)));
+
+		drtCfg.getDrtSpeedUpParams().ifPresent(drtSpeedUpParams -> {
+			bindModal(DrtSpeedUp.class).toProvider(modalProvider(
+					getter -> new DrtSpeedUp(getMode(), drtSpeedUpParams, getConfig().controler(),
+							getter.get(Network.class), getter.getModal(FleetSpecification.class),
+							getter.getModal(DrtRequestAnalyzer.class)))).asEagerSingleton();
+			addControlerListenerBinding().to(modalKey(DrtSpeedUp.class));
+		});
 	}
 
 	private static class DrtRouteCreatorProvider extends ModalProviders.AbstractProvider<DrtRouteCreator> {
@@ -207,7 +241,7 @@ public final class DrtModeModule extends AbstractDvrpModeModule {
 				.getFacilities()
 				.values()
 				.stream()
-				.map(DrtStopFacilityImpl::createFromIdentifiableFacility)
+				.map(DrtStopFacilityImpl::createFromFacility)
 				.collect(ImmutableMap.toImmutableMap(DrtStopFacility::getId, f -> f));
 		return () -> drtStops;
 	}
